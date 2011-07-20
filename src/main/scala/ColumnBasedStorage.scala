@@ -115,6 +115,13 @@ class Storage(basedir: String) {
         if (!schemas.contains(column))
             throw new StorageError("Unknown column")
     }
+
+    protected def read_next_header(buf: ByteBuffer): Header = {
+        val header_size = buf.get()
+        val header_data = new Array[Byte](header_size)
+        buf.get(header_data)
+        return Header.parseFrom(header_data)
+    }
 }
 
 object ColumnBasedStorage {
