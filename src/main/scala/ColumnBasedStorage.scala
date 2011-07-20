@@ -21,7 +21,7 @@ object ColumnSchema {
 }
 
 
-class ColumnSchema(row_size: Int) {
+class ColumnSchema(val row_size: Int) {
 }
 
 
