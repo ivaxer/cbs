@@ -41,7 +41,7 @@ class ColumnReader(channel: FileChannel, schema: ColumnSchema) {
         return header
     }
 
-    def read(dst: ByteBuffer, start: Int, count: Int) = {
+    def read(start: Int, count: Int): ByteBuffer = {
         if (start < row_start)
             throw new Exception("Out of range: start < first row in block")
         if (start + count > row_end)
@@ -49,11 +49,9 @@ class ColumnReader(channel: FileChannel, schema: ColumnSchema) {
         val length = count * schema.row_size
         val offset = data_start_offset + (start - row_start) * schema.row_size
         buffer.position(offset)
-        // XXX: memory allocation
-        val tmp_array = new Array[Byte](length)
-        buffer.get(tmp_array)
-        dst.put(tmp_array)
-        dst.flip()
+        val result = buffer.slice()
+        result.limit(length)
+        return result
     }
 
     def reset() = {
