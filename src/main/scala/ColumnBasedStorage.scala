@@ -183,8 +183,11 @@ object ColumnBasedStorage {
         val storage = new Storage("/tmp/storage")
         storage.open()
         val header = Header.newBuilder().setNumRows(1).setBlockSize(8).build()
-        val data: Array[Byte] = Array[Byte](1, 2, 3, 4, 5, 6, 7, 8)
-        storage.append(new Block(header, data), "huj")
+        var data: Array[Byte] = Array[Byte](2, 2, 3, 4, 5, 6, 7, 8)
+        //storage.append(new Block(header, data), "huj")
+        val buf = ByteBuffer.allocate(8)
+        storage.read(buf, 1, 1, "huj")
+        println(buf.get())
     }
 }
 
