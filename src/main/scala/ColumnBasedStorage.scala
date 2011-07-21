@@ -126,7 +126,7 @@ class Storage(basedir: String) {
     def close() = {
     }
 
-    def read(dst: ByteBuffer, start: Int, count: Int, column: String) = {
+    def read(start: Int, count: Int, column: String): ByteBuffer = {
         is_column_exists(column)
         val reader = get_column_reader(column)
         // XXX: read from start of file each call
@@ -139,7 +139,7 @@ class Storage(basedir: String) {
         }
 
         // XXX: just for test
-        reader.read(dst, start, count)
+        return reader.read(start, count)
     }
 
     def append(block: Block, column: String) = {
@@ -183,8 +183,7 @@ object ColumnBasedStorage {
         val header = Header.newBuilder().setNumRows(1).setBlockSize(8).build()
         var data: Array[Byte] = Array[Byte](2, 2, 3, 4, 5, 6, 7, 8)
         //storage.append(new Block(header, data), "huj")
-        val buf = ByteBuffer.allocate(8)
-        storage.read(buf, 1, 1, "huj")
+        val buf = storage.read(1, 1, "huj")
         println(buf.get())
     }
 }
