@@ -21,6 +21,73 @@ object ColumnSchema {
 }
 
 
+class ColumnReader(channel: FileChannel, schema: ColumnSchema) {
+    val buffer = channel.map(READ_ONLY, 0, channel.size)
+    var header: Header = null
+    var data_start_offset = 0
+    var data_end_offset = 0
+    var row_start = 0
+    var row_end = 0
+
+    next_block()
+
+    def next_block(): Header = {
+        seek_to_next_header();
+        header = read_header()
+        data_start_offset = buffer.position()
+        data_end_offset = data_start_offset + schema.row_size * header.getNumRows().toInt
+        row_start = row_end
+        row_end = row_start + header.getNumRows().toInt
+        return header
+    }
+
+    def read(dst: ByteBuffer, start: Int, count: Int) = {
+        if (start < row_start)
+            throw new Exception("Out of range: start < first row in block")
+        if (start + count > row_end)
+            throw new Exception("Out of range: start + count >= last row in block")
+        val length = count * schema.row_size
+        val offset = data_start_offset + (start - row_start) * schema.row_size
+        buffer.position(offset)
+        // XXX: memory allocation
+        val tmp_array = new Array[Byte](length)
+        buffer.get(tmp_array)
+        dst.put(tmp_array)
+        dst.flip()
+    }
+
+    def reset() = {
+        buffer.position(0)
+        data_start_offset = 0
+        data_end_offset = 0
+        row_start = 0
+        row_end = 0
+        next_block()
+    }
+
+    override def toString(): String = {
+        return "Row start: " + row_start +
+        "\nRow end: " + row_end +
+        "\nData start offset: " + data_start_offset +
+        "\nData end offset: " + data_end_offset +
+        "\nBacked buffer: " + buffer.toString +
+        "\nHeader: " + header.toString
+    }
+
+    protected def seek_to_next_header() = {
+        buffer.position(data_end_offset)
+    }
+
+    protected def read_header(): Header = {
+        val header_size = buffer.get()
+        val header_data = new Array[Byte](header_size)
+        buffer.get(header_data)
+        return Header.parseFrom(header_data)
+    }
+}
+
+
+
 class ColumnSchema(val row_size: Int) {
 }
 
