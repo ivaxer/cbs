@@ -99,7 +99,6 @@ class Storage(basedir: String) {
     val schema_suffix = ".schema"
 
     var schemas: HashMap[String, ColumnSchema] = null
-    //var iobuffers: HashMap[String, ByteBuffer] = null
     var filechannels: HashMap[String, FileChannel] = null
     var column_readers: HashMap[String, ColumnReader] = null
 
