@@ -101,7 +101,7 @@ class Storage(basedir: String) {
     var schemas: HashMap[String, ColumnSchema] = null
     //var iobuffers: HashMap[String, ByteBuffer] = null
     var filechannels: HashMap[String, FileChannel] = null
-    var mmaps: HashMap[String, ByteBuffer] = null
+    var column_readers: HashMap[String, ColumnReader] = null
 
     if (!new File(basedir).exists)
         throw new IOException("Storage directory '%s' does not exists" format basedir)
@@ -109,7 +109,7 @@ class Storage(basedir: String) {
     def open() = {
         schemas = new HashMap[String, ColumnSchema]
         filechannels = new HashMap[String, FileChannel]
-        mmaps = new HashMap[String, ByteBuffer]
+        column_readers = new HashMap[String, ColumnReader]
 
         val db = new File(basedir)
         val fls = db.listFiles()
@@ -129,36 +129,20 @@ class Storage(basedir: String) {
     def close() = {
     }
 
-    def read(start: Int, count: Int, column: String): ByteBuffer = {
+    def read(dst: ByteBuffer, start: Int, count: Int, column: String) = {
         is_column_exists(column)
-        val channel = filechannels(column)
-        val schema = schemas(column)
-        var buf: ByteBuffer = null
-        if (mmaps.contains(column)) {
-            buf = mmaps(column)
+        val reader = get_column_reader(column)
+        // XXX: read from start of file each call
+        reader.reset()
+        println(reader)
+
+        while (reader.row_end <= start) {
+            reader.next_block()
+            println(reader)
         }
-        else {
-            buf = channel.map(READ_ONLY, 0, channel.size)
-            mmaps += column -> buf
-        }
-        buf.position(0)
-        var header = read_next_header(buf)
-        var start_row = 0
-        var last_row = header.getNumRows().toInt
-        while (last_row <= start) {
-            buf.position(buf.position() + header.getNumRows().toInt * schema.row_size)
-            header = read_next_header(buf)
-            start_row = last_row
-            last_row = last_row + header.getNumRows().toInt
-            println("Start row: " + start_row + " last row: " + last_row)
-        }
-        if (start + count > last_row)
-            throw new Exception
-        buf.position(buf.position() + (start - start_row) * schema.row_size)
-        val size = count * schema.row_size
-        val result: Array[Byte] = new Array[Byte](size)
-        buf.get(result)
-        return ByteBuffer.wrap(result)
+
+        // XXX: just for test
+        reader.read(dst, start, count)
     }
 
     def append(block: Block, column: String) = {
@@ -183,11 +167,15 @@ class Storage(basedir: String) {
             throw new StorageError("Unknown column")
     }
 
-    protected def read_next_header(buf: ByteBuffer): Header = {
-        val header_size = buf.get()
-        val header_data = new Array[Byte](header_size)
-        buf.get(header_data)
-        return Header.parseFrom(header_data)
+    protected def get_column_reader(column: String): ColumnReader = {
+        if (column_readers.contains(column)) {
+            return column_readers(column)
+        }
+        else {
+            val channel = filechannels(column)
+            val schema = schemas(column)
+            return new ColumnReader(channel, schema)
+        }
     }
 }
 
