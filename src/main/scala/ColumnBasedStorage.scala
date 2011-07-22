@@ -4,7 +4,7 @@ import java.nio.channels.FileChannel
 import java.nio.channels.FileChannel.MapMode._
 import scala.io.Source
 import scala.collection.mutable.{HashMap, ListBuffer}
-import scala.Math.min
+import scala.math.min
 
 import Structures.Header
 
