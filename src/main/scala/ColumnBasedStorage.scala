@@ -72,7 +72,8 @@ class ColumnReader(channel: FileChannel, schema: ColumnSchema) {
     }
 
     override def toString(): String = {
-        return "Row start: " + row_start +
+        return "Schema: " + schema.toString +
+        "\nRow start: " + row_start +
         "\nRow end: " + row_end +
         "\nData start offset: " + data_start_offset +
         "\nData end offset: " + data_end_offset +
