@@ -133,11 +133,9 @@ class Storage(basedir: String) {
         val reader = get_column_reader(column)
         // XXX: read from start of file each call
         reader.reset()
-        println(reader)
 
         while (reader.row_end <= start) {
             reader.next_block()
-            println(reader)
         }
 
         val result = ListBuffer[ByteBuffer]()
