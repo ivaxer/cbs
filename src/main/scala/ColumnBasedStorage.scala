@@ -196,8 +196,13 @@ object ColumnBasedStorage {
         val header = Header.newBuilder().setNumRows(1).setBlockSize(8).build()
         var data: Array[Byte] = Array[Byte](2, 2, 3, 4, 5, 6, 7, 8)
         //storage.append(new Block(header, data), "huj")
-        val buf = storage.read(1, 1, "huj")
-        println(buf.get())
+        var row = new Array[Byte](8)
+        for (buf <- storage.read(0, 3, "huj")) {
+            while (buf.hasRemaining()) {
+                buf.get(row)
+                println(row.mkString)
+            }
+        }
     }
 }
 
