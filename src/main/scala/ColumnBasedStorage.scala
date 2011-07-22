@@ -104,6 +104,11 @@ class ColumnWriter(channel: FileChannel, schema: ColumnSchema) {
         channel.write(data)
     }
 
+    override def toString(): String = {
+        return "Schema: " + schema.toString +
+        "\nFile channel: " + channel.toString
+    }
+
     protected def seek_to_endfile() = {
         channel.position(channel.size)
     }
