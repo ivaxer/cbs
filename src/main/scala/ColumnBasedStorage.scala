@@ -3,7 +3,8 @@ import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 import java.nio.channels.FileChannel.MapMode._
 import scala.io.Source
-import scala.collection.mutable.HashMap
+import scala.collection.mutable.{HashMap, ListBuffer}
+import scala.Math.min
 
 import Structures.Header
 
@@ -126,7 +127,8 @@ class Storage(basedir: String) {
     def close() = {
     }
 
-    def read(start: Int, count: Int, column: String): ByteBuffer = {
+    // XXX: return value is ListBuffer of ByteBuffers now.
+    def read(start: Int, count: Int, column: String): ListBuffer[ByteBuffer] = {
         is_column_exists(column)
         val reader = get_column_reader(column)
         // XXX: read from start of file each call
@@ -138,8 +140,21 @@ class Storage(basedir: String) {
             println(reader)
         }
 
-        // XXX: just for test
-        return reader.read(start, count)
+        val result = ListBuffer[ByteBuffer]()
+        var pending_rows = count
+        var cur_start = start
+
+        while (pending_rows > 0) {
+            val cur_count = min(pending_rows, reader.header.getNumRows().toInt)
+            val buf = reader.read(cur_start, cur_count)
+            result += buf
+            pending_rows -= cur_count
+            cur_start += cur_count
+            if (pending_rows > 0)
+                reader.next_block()
+        }
+
+        return result
     }
 
     def append(block: Block, column: String) = {
