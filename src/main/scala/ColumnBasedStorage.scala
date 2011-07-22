@@ -9,7 +9,7 @@ import scala.Math.min
 import Structures.Header
 
 
-class Block(val header: Header, val data: Array[Byte]) {
+class Block(val header: Header, val data: ByteBuffer) {
 }
 
 
@@ -82,6 +82,39 @@ class ColumnReader(channel: FileChannel, schema: ColumnSchema) {
         val header_data = new Array[Byte](header_size)
         buffer.get(header_data)
         return Header.parseFrom(header_data)
+    }
+}
+
+
+class ColumnWriter(channel: FileChannel, schema: ColumnSchema) {
+    seek_to_endfile()
+
+    def append(block: Block) = {
+        check_block(block)
+        val header = block.header
+        val data = block.data
+        write_header(header)
+        channel.write(data)
+    }
+
+    def seek_to_endfile() = {
+        channel.position(channel.size)
+    }
+
+    protected def check_block(block: Block) = {
+        val header = block.header
+        if (header.getBlockSize != block.data.remaining)
+            throw new Exception("Header's block size and actual block size differs")
+    }
+
+    protected def write_header(header: Header) = {
+        val data = header.toByteArray
+        val header_size = data.length.toByte
+        val buf = ByteBuffer.allocate(header_size + 1)
+        buf.put(header_size)
+        buf.put(data)
+        buf.flip()
+        channel.write(buf)
     }
 }
 
