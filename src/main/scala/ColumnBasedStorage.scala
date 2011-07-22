@@ -133,6 +133,7 @@ class Storage(basedir: String) {
     var schemas: HashMap[String, ColumnSchema] = null
     var filechannels: HashMap[String, FileChannel] = null
     var column_readers: HashMap[String, ColumnReader] = null
+    var column_writers: HashMap[String, ColumnWriter] = null
 
     if (!new File(basedir).exists)
         throw new IOException("Storage directory '%s' does not exists" format basedir)
@@ -141,6 +142,7 @@ class Storage(basedir: String) {
         schemas = new HashMap[String, ColumnSchema]
         filechannels = new HashMap[String, FileChannel]
         column_readers = new HashMap[String, ColumnReader]
+        column_writers = new HashMap[String, ColumnWriter]
 
         val db = new File(basedir)
         val fls = db.listFiles()
@@ -190,16 +192,8 @@ class Storage(basedir: String) {
 
     def append(block: Block, column: String) = {
         is_column_exists(column)
-        val channel = filechannels(column)
-        channel.position(channel.size)
-        val header_data = block.header.toByteArray
-        val header_size: Byte = header_data.length.toByte
-        val size = 1 + header_size + block.header.getBlockSize().toInt
-        val buf = ByteBuffer.allocate(size)
-        buf.put(header_size).put(header_data).put(block.data)
-        buf.flip()
-        val appended = channel.write(buf)
-        print("Appended %s of %s bytes to column '%s':\n%s" format (appended, size, column, block.header))
+        val writer = get_column_writer(column)
+        writer.append(block)
     }
 
     def repack() = {
@@ -218,6 +212,17 @@ class Storage(basedir: String) {
             val channel = filechannels(column)
             val schema = schemas(column)
             return new ColumnReader(channel, schema)
+        }
+    }
+
+    protected def get_column_writer(column: String): ColumnWriter = {
+        if (column_writers.contains(column)) {
+            return column_writers(column)
+        }
+        else {
+            val channel = filechannels(column)
+            val schema = schemas(column)
+            return new ColumnWriter(channel, schema)
         }
     }
 }
