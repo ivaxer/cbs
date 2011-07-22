@@ -198,6 +198,8 @@ class Storage(basedir: String) {
         return result
     }
 
+    def read(start: Int, column: String): ListBuffer[ByteBuffer] = read(start, 1, column)
+
     def append(block: Block, column: String) = {
         is_column_exists(column)
         val writer = get_column_writer(column)
