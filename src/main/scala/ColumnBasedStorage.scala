@@ -231,9 +231,14 @@ object ColumnBasedStorage {
     def main(args: Array[String]) = {
         val storage = new Storage("/tmp/storage")
         storage.open()
-        val header = Header.newBuilder().setNumRows(1).setBlockSize(8).build()
-        var data: Array[Byte] = Array[Byte](2, 2, 3, 4, 5, 6, 7, 8)
-        //storage.append(new Block(header, data), "huj")
+        val header1 = Header.newBuilder().setNumRows(2).setBlockSize(16).build()
+        val data1 = ByteBuffer.wrap(Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16))
+        storage.append(new Block(header1, data1), "huj")
+
+        val header2 = Header.newBuilder().setNumRows(1).setBlockSize(8).build()
+        val data2 = ByteBuffer.wrap(Array[Byte](17, 18, 19, 20, 21, 22, 23, 24))
+        storage.append(new Block(header2, data2), "huj")
+
         var row = new Array[Byte](8)
         for (buf <- storage.read(0, 3, "huj")) {
             while (buf.hasRemaining()) {
