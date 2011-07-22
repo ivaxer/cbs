@@ -22,6 +22,13 @@ object ColumnSchema {
 }
 
 
+class ColumnSchema(val row_size: Int) {
+    override def toString(): String = {
+        return "Row size: " + row_size
+    }
+}
+
+
 class ColumnReader(channel: FileChannel, schema: ColumnSchema) {
     val buffer = channel.map(READ_ONLY, 0, channel.size)
     var header: Header = null
@@ -116,11 +123,6 @@ class ColumnWriter(channel: FileChannel, schema: ColumnSchema) {
         buf.flip()
         channel.write(buf)
     }
-}
-
-
-
-class ColumnSchema(val row_size: Int) {
 }
 
 
