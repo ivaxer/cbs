@@ -94,7 +94,6 @@ class ColumnWriter(channel: FileChannel, schema: ColumnSchema) {
     seek_to_endfile()
 
     def append(header: Header, data: ByteBuffer) = {
-        check_block(header, data)
         write_header(header)
         channel.write(data)
     }
@@ -106,11 +105,6 @@ class ColumnWriter(channel: FileChannel, schema: ColumnSchema) {
 
     protected def seek_to_endfile() = {
         channel.position(channel.size)
-    }
-
-    protected def check_block(header: Header, data: ByteBuffer) = {
-        if (header.getBlockSize != data.remaining)
-            throw new Exception("Header's block size and actual block size differs")
     }
 
     protected def write_header(header: Header) = {
