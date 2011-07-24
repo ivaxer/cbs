@@ -158,7 +158,7 @@ class Storage(basedir: String) {
     }
 
     // XXX: return value is ListBuffer of ByteBuffers now.
-    def read(start: Int, count: Int, column: String): ListBuffer[ByteBuffer] = {
+    def read(column: String, start: Int, count: Int): ListBuffer[ByteBuffer] = {
         is_column_exists(column)
         val reader = get_column_reader(column)
         // XXX: read from start of file each call
@@ -185,7 +185,7 @@ class Storage(basedir: String) {
         return result
     }
 
-    def read(start: Int, column: String): ListBuffer[ByteBuffer] = read(start, 1, column)
+    def read(column: String, start: Int): ListBuffer[ByteBuffer] = read(column, start, 1)
 
     def append(column: String, data: ByteBuffer) = {
         is_column_exists(column)
@@ -239,7 +239,7 @@ object ColumnBasedStorage {
         storage.append("huj", data2)
 
         var row = new Array[Byte](8)
-        for (buf <- storage.read(0, 3, "huj")) {
+        for (buf <- storage.read("huj", 0, 3)) {
             while (buf.hasRemaining()) {
                 buf.get(row)
                 println(row.mkString)
