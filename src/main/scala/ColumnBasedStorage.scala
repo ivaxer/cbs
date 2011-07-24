@@ -9,10 +9,6 @@ import scala.math.min
 import Structures.Header
 
 
-class Block(val header: Header, val data: ByteBuffer) {
-}
-
-
 object ColumnSchema {
     def parseFrom(file: File): ColumnSchema = {
         val lines = Source.fromFile(file).getLines
@@ -97,10 +93,8 @@ class ColumnReader(channel: FileChannel, schema: ColumnSchema) {
 class ColumnWriter(channel: FileChannel, schema: ColumnSchema) {
     seek_to_endfile()
 
-    def append(block: Block) = {
-        check_block(block)
-        val header = block.header
-        val data = block.data
+    def append(header: Header, data: ByteBuffer) = {
+        check_block(header, data)
         write_header(header)
         channel.write(data)
     }
@@ -114,9 +108,8 @@ class ColumnWriter(channel: FileChannel, schema: ColumnSchema) {
         channel.position(channel.size)
     }
 
-    protected def check_block(block: Block) = {
-        val header = block.header
-        if (header.getBlockSize != block.data.remaining)
+    protected def check_block(header: Header, data: ByteBuffer) = {
+        if (header.getBlockSize != data.remaining)
             throw new Exception("Header's block size and actual block size differs")
     }
 
@@ -200,10 +193,14 @@ class Storage(basedir: String) {
 
     def read(start: Int, column: String): ListBuffer[ByteBuffer] = read(start, 1, column)
 
-    def append(block: Block, column: String) = {
+    def append(column: String, data: ByteBuffer) = {
         is_column_exists(column)
+        val schema = schemas(column)
+        val block_size = data.remaining
+        val num_rows = block_size / schema.row_size
+        val header = Header.newBuilder().setNumRows(num_rows).setBlockSize(block_size).build()
         val writer = get_column_writer(column)
-        writer.append(block)
+        writer.append(header, data)
     }
 
     def repack() = {
@@ -241,13 +238,11 @@ object ColumnBasedStorage {
     def main(args: Array[String]) = {
         val storage = new Storage("/tmp/storage")
         storage.open()
-        val header1 = Header.newBuilder().setNumRows(2).setBlockSize(16).build()
         val data1 = ByteBuffer.wrap(Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16))
-        storage.append(new Block(header1, data1), "huj")
+        storage.append("huj", data1)
 
-        val header2 = Header.newBuilder().setNumRows(1).setBlockSize(8).build()
         val data2 = ByteBuffer.wrap(Array[Byte](17, 18, 19, 20, 21, 22, 23, 24))
-        storage.append(new Block(header2, data2), "huj")
+        storage.append("huj", data2)
 
         var row = new Array[Byte](8)
         for (buf <- storage.read(0, 3, "huj")) {
