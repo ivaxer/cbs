@@ -197,6 +197,11 @@ class Storage(basedir: String) {
         writer.append(header, data)
     }
 
+    def append(columns: HashMap[String, ByteBuffer]) {
+        for ((column, data) <- columns)
+            append(column, data)
+    }
+
     def repack() = {
     }
 
