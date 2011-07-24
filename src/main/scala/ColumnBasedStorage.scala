@@ -187,7 +187,7 @@ class Storage(basedir: String) {
 
     def read(column: String, start: Int): ListBuffer[ByteBuffer] = read(column, start, 1)
 
-    def append(column: String, data: ByteBuffer) = {
+    def append(column: String, data: ByteBuffer) {
         is_column_exists(column)
         val schema = schemas(column)
         val block_size = data.remaining
