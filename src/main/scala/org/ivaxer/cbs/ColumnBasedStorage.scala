@@ -1,3 +1,5 @@
+package org.ivaxer.cbs
+
 import java.io.{File, RandomAccessFile, IOException}
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
@@ -6,7 +8,7 @@ import scala.io.Source
 import scala.collection.mutable.{HashMap, ListBuffer}
 import scala.math.min
 
-import Structures.Header
+import protos.Protos.Header
 
 
 object ColumnSchema {
