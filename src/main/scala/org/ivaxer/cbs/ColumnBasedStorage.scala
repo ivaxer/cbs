@@ -23,6 +23,8 @@ object ColumnSchema {
 
 
 class ColumnSchema(val row_size: Int) {
+    val nil = 0
+
     override def toString(): String = {
         return "Row size: " + row_size
     }
@@ -101,6 +103,11 @@ class ColumnWriter(channel: FileChannel, schema: ColumnSchema) {
         write_header(header)
         channel.write(data)
     }
+
+    def append(header: Header) {
+        write_header(header)
+    }
+
 
     override def toString(): String = {
         return "Schema: " + schema.toString +
@@ -199,22 +206,34 @@ class Storage(basedir: String) {
         get_column_writer(column).append(header, data)
     }
 
+    def append(column: String, header: Header) {
+        is_column_exists(column)
+        get_column_writer(column).append(header)
+    }
+
     def append(column: String, data: ByteBuffer, compress: Boolean = false) {
         is_column_exists(column)
         val schema = schemas(column)
         val block_size = data.remaining
         val num_rows = block_size / schema.row_size
-        val header_builder = Header.newBuilder().setNumRows(num_rows).setBlockSize(block_size)
+        val header_builder = Header.newBuilder().setNumRows(num_rows)
         var block_data: ByteBuffer = null
-        if (compress) {
+        if (is_empty(schema, data))
+            header_builder.setBlockSize(0)
+        else if (compress) {
             block_data = compress_data(data)
-            header_builder.setCompressedBlockSize(block_data.remaining)
+            header_builder.setCompressedBlockSize(block_data.remaining).setBlockSize(block_size)
         }
-        else
+        else {
             block_data = data
+            header_builder.setBlockSize(block_size)
+        }
         val header = header_builder.build()
         println("Appended column '" + column + "': " + header)
-        append(column, header, block_data)
+        if (block_data != null)
+            append(column, header, block_data)
+        else
+            append(column, header)
     }
 
     def append(columns: HashMap[String, ByteBuffer]) {
@@ -290,6 +309,14 @@ class Storage(basedir: String) {
         val buf = new Array[Byte](data.remaining)
         data.get(buf)
         buf
+    }
+
+    protected def is_empty(schema: ColumnSchema, data: ByteBuffer): Boolean = {
+        val view = data.asLongBuffer()
+        while (view.hasRemaining)
+            if (view.get() != schema.nil)
+                return false
+        return true
     }
 }
 
