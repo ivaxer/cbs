@@ -199,17 +199,31 @@ class Storage(basedir: String) {
         get_column_writer(column).append(header, data)
     }
 
+    def append(column: String, data: ByteBuffer, compress: Boolean = false) {
         is_column_exists(column)
         val schema = schemas(column)
         val block_size = data.remaining
         val num_rows = block_size / schema.row_size
-        val header = Header.newBuilder().setNumRows(num_rows).setBlockSize(block_size).build()
-        append(column, header, data)
+        val header_builder = Header.newBuilder().setNumRows(num_rows).setBlockSize(block_size)
+        var block_data: ByteBuffer = null
+        if (compress) {
+            block_data = compress_data(data)
+            header_builder.setCompressedBlockSize(block_data.remaining)
+        }
+        else
+            block_data = data
+        val header = header_builder.build()
+        println("Appended column '" + column + "': " + header)
+        append(column, header, block_data)
     }
 
     def append(columns: HashMap[String, ByteBuffer]) {
+        append(columns, false)
+    }
+
+    def append(columns: HashMap[String, ByteBuffer], compress: Boolean) {
         for ((column, data) <- columns)
-            append(column, data)
+            append(column, data, compress)
     }
 
     def repack() = {
