@@ -187,14 +187,17 @@ class Storage(basedir: String) {
 
     def read(column: String, start: Int): ListBuffer[ByteBuffer] = read(column, start, 1)
 
-    def append(column: String, data: ByteBuffer) {
+    def append(column: String, header: Header, data: ByteBuffer) {
+        is_column_exists(column)
+        get_column_writer(column).append(header, data)
+    }
+
         is_column_exists(column)
         val schema = schemas(column)
         val block_size = data.remaining
         val num_rows = block_size / schema.row_size
         val header = Header.newBuilder().setNumRows(num_rows).setBlockSize(block_size).build()
-        val writer = get_column_writer(column)
-        writer.append(header, data)
+        append(column, header, data)
     }
 
     def append(columns: HashMap[String, ByteBuffer]) {
