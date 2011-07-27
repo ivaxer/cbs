@@ -1,12 +1,14 @@
 package org.ivaxer.cbs
 
-import java.io.{File, RandomAccessFile, IOException}
+import java.io.{File, RandomAccessFile, IOException, ByteArrayInputStream, ByteArrayOutputStream}
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 import java.nio.channels.FileChannel.MapMode._
 import scala.io.Source
 import scala.collection.mutable.{HashMap, ListBuffer}
 import scala.math.min
+
+import SevenZip.Compression.LZMA.{Encoder, Decoder}
 
 import protos.Protos.Header
 
@@ -132,6 +134,9 @@ class Storage(basedir: String) {
     var column_readers: HashMap[String, ColumnReader] = null
     var column_writers: HashMap[String, ColumnWriter] = null
 
+    val encoder = build_encoder()
+    val decoder = build_decoder()
+
     if (!new File(basedir).exists)
         throw new IOException("Storage directory '%s' does not exists" format basedir)
 
@@ -210,6 +215,27 @@ class Storage(basedir: String) {
     def repack() = {
     }
 
+    protected def compress_data(data: ByteBuffer): ByteBuffer = {
+        val in = new ByteArrayInputStream(to_array(data))
+        val out = new ByteArrayOutputStream()
+        encoder.WriteCoderProperties(out)
+        encoder.Code(in, out, -1, -1, null)
+        ByteBuffer.wrap(out.toByteArray)
+    }
+
+    protected def decompress_data(compressed: ByteBuffer, uncompressed_size: Int): ByteBuffer = {
+        val props = new Array[Byte](Encoder.kPropSize)
+        compressed.get(props)
+        val rest = compressed.slice()
+        if (!decoder.SetDecoderProperties(props))
+            throw new Exception("Incorrect coder properties")
+        val in = new ByteArrayInputStream(to_array(rest))
+        val out = new ByteArrayOutputStream(uncompressed_size)
+        if (!decoder.Code(in, out, uncompressed_size))
+            throw new Exception("Error in data stream")
+        ByteBuffer.wrap(out.toByteArray)
+    }
+
     protected def is_column_exists(column: String) = {
         if (!schemas.contains(column))
             throw new StorageError("Unknown column")
@@ -235,6 +261,21 @@ class Storage(basedir: String) {
             val schema = schemas(column)
             return new ColumnWriter(channel, schema)
         }
+    }
+
+    protected def build_encoder(): Encoder = {
+        new Encoder()
+    }
+
+    protected def build_decoder(): Decoder = {
+        new Decoder()
+    }
+
+    protected def to_array(data: ByteBuffer): Array[Byte] = {
+        // XXX: memory coping:
+        val buf = new Array[Byte](data.remaining)
+        data.get(buf)
+        buf
     }
 }
 
