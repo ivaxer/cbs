@@ -44,6 +44,8 @@ class ColumnReader(channel: FileChannel, schema: ColumnSchema) {
     def next_block(): Header = {
         seek_to_next_header();
         header = read_header()
+        if (header.hasCompressedBlockSize())
+            throw new Exception("Not Implemented")
         data_start_offset = buffer.position()
         data_end_offset = data_start_offset + schema.row_size * header.getNumRows().toInt
         row_start = row_end
