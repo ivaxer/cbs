@@ -274,9 +274,9 @@ class Storage(basedir: String, mode: OpenMode) {
             return column_readers(column)
         }
         else {
-            val channel = filechannels(column)
+            val file = data_files(column)
             val schema = schemas(column)
-            return new ColumnReader(channel, schema)
+            return new ColumnReader(file, schema)
         }
     }
 
@@ -285,9 +285,9 @@ class Storage(basedir: String, mode: OpenMode) {
             return column_writers(column)
         }
         else {
-            val channel = filechannels(column)
+            val file = data_files(column)
             val schema = schemas(column)
-            return new ColumnWriter(channel, schema)
+            return new ColumnWriter(file, schema)
         }
     }
 
