@@ -215,7 +215,6 @@ class Storage(basedir: String, mode: OpenMode) {
         data_files += name -> fname
     }
 
-    val encoder = build_encoder()
     val decoder = build_decoder()
 
 
@@ -303,10 +302,6 @@ class Storage(basedir: String, mode: OpenMode) {
         }
     }
 
-    protected def build_encoder(): Encoder = {
-        new Encoder()
-    }
-
     protected def build_decoder(): Decoder = {
         new Decoder()
     }
@@ -318,12 +313,6 @@ class Storage(basedir: String, mode: OpenMode) {
         buf
     }
 
-    protected def is_empty(schema: ColumnSchema, data: ByteBuffer): Boolean = {
-        val view = data.asLongBuffer()
-        while (view.hasRemaining)
-            if (view.get() != schema.nil)
-                return false
-        return true
     }
 }
 
