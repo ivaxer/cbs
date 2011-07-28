@@ -317,16 +317,17 @@ class Storage(basedir: String, mode: OpenMode) {
 
 object ColumnBasedStorage {
     def main(args: Array[String]) = {
-        val storage = new Storage("/tmp/storage")
-        storage.open()
+        val storage = new Storage("/tmp/storage", WRITE)
         val data1 = ByteBuffer.wrap(Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16))
         storage.append("huj", data1)
 
         val data2 = ByteBuffer.wrap(Array[Byte](17, 18, 19, 20, 21, 22, 23, 24))
         storage.append("huj", data2)
 
+        val rstorage = new Storage("/tmp/storage", READ)
+
         var row = new Array[Byte](8)
-        for (buf <- storage.read("huj", 0, 3)) {
+        for (buf <- rstorage.read("huj", 0, 3)) {
             while (buf.hasRemaining()) {
                 buf.get(row)
                 println(row.mkString)
