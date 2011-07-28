@@ -268,14 +268,6 @@ class Storage(basedir: String, mode: OpenMode) {
     def repack() = {
     }
 
-    protected def compress_data(data: ByteBuffer): ByteBuffer = {
-        val in = new ByteArrayInputStream(to_array(data))
-        val out = new ByteArrayOutputStream()
-        encoder.WriteCoderProperties(out)
-        encoder.Code(in, out, -1, -1, null)
-        ByteBuffer.wrap(out.toByteArray)
-    }
-
     protected def decompress_data(compressed: ByteBuffer, uncompressed_size: Int): ByteBuffer = {
         val props = new Array[Byte](Encoder.kPropSize)
         compressed.get(props)
