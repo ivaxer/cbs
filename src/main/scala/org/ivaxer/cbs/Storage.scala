@@ -103,8 +103,11 @@ class ColumnReader(file: String, schema: ColumnSchema) {
 
 class ColumnWriter(file: String, schema: ColumnSchema) {
     val channel = new FileOutputStream(file, true).getChannel()
+    val compress = true
 
-    def append(header: Header, data: ByteBuffer) = {
+    val encoder = build_encoder()
+
+    def append(header: Header, data: ByteBuffer) {
         write_header(header)
         channel.write(data)
     }
@@ -113,6 +116,28 @@ class ColumnWriter(file: String, schema: ColumnSchema) {
         write_header(header)
     }
 
+    def append(data: ByteBuffer) {
+        val block_size = data.remaining
+        val num_rows = block_size / schema.row_size
+        val header_builder = Header.newBuilder().setNumRows(num_rows)
+        var block_data: ByteBuffer = null
+        if (is_empty(schema, data))
+            header_builder.setBlockSize(0)
+        else if (compress) {
+            block_data = encode(data)
+            header_builder.setCompressedBlockSize(block_data.remaining).setBlockSize(block_size)
+        }
+        else {
+            block_data = data
+            header_builder.setBlockSize(block_size)
+        }
+        val header = header_builder.build()
+        println("Appended block: " + header)
+        if (block_data != null)
+            append(header, block_data)
+        else
+            append(header)
+    }
 
     override def toString(): String = {
         return "Schema: " + schema.toString +
@@ -127,6 +152,33 @@ class ColumnWriter(file: String, schema: ColumnSchema) {
         buf.put(data)
         buf.flip()
         channel.write(buf)
+    }
+
+    protected def build_encoder(): Encoder = {
+        new Encoder()
+    }
+
+    protected def encode(data: ByteBuffer): ByteBuffer = {
+        val in = new ByteArrayInputStream(to_array(data))
+        val out = new ByteArrayOutputStream()
+        encoder.WriteCoderProperties(out)
+        encoder.Code(in, out, -1, -1, null)
+        ByteBuffer.wrap(out.toByteArray)
+    }
+
+    protected def is_empty(schema: ColumnSchema, data: ByteBuffer): Boolean = {
+        val view = data.asLongBuffer()
+        while (view.hasRemaining)
+            if (view.get() != schema.nil)
+                return false
+        return true
+    }
+
+    protected def to_array(data: ByteBuffer): Array[Byte] = {
+        // XXX: memory coping:
+        val buf = new Array[Byte](data.remaining)
+        data.get(buf)
+        buf
     }
 }
 
@@ -209,27 +261,7 @@ class Storage(basedir: String, mode: OpenMode) {
 
     def append(column: String, data: ByteBuffer, compress: Boolean = false) {
         is_column_exists(column)
-        val schema = schemas(column)
-        val block_size = data.remaining
-        val num_rows = block_size / schema.row_size
-        val header_builder = Header.newBuilder().setNumRows(num_rows)
-        var block_data: ByteBuffer = null
-        if (is_empty(schema, data))
-            header_builder.setBlockSize(0)
-        else if (compress) {
-            block_data = compress_data(data)
-            header_builder.setCompressedBlockSize(block_data.remaining).setBlockSize(block_size)
-        }
-        else {
-            block_data = data
-            header_builder.setBlockSize(block_size)
-        }
-        val header = header_builder.build()
-        println("Appended column '" + column + "': " + header)
-        if (block_data != null)
-            append(column, header, block_data)
-        else
-            append(column, header)
+        get_column_writer(column).append(data)
     }
 
     def append(columns: HashMap[String, ByteBuffer]) {
