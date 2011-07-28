@@ -256,17 +256,13 @@ class Storage(basedir: String, mode: OpenMode) {
         get_column_writer(column).append(header)
     }
 
-    def append(column: String, data: ByteBuffer, compress: Boolean = false) {
+    def append(column: String, data: ByteBuffer) {
         get_column_writer(column).append(data)
     }
 
     def append(columns: HashMap[String, ByteBuffer]) {
-        append(columns, false)
-    }
-
-    def append(columns: HashMap[String, ByteBuffer], compress: Boolean) {
         for ((column, data) <- columns)
-            append(column, data, compress)
+            append(column, data)
     }
 
     def repack() = {
