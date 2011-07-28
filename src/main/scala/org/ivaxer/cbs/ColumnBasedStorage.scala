@@ -133,43 +133,38 @@ class ColumnWriter(file: String, schema: ColumnSchema) {
 class StorageError(msg: String) extends Exception
 
 
-class Storage(basedir: String) {
+object OpenMode extends Enumeration("Read", "Write") {
+    type OpenMode = Value
+    val READ, WRITE = Value
+}
+import OpenMode._
+
+
+class Storage(basedir: String, mode: OpenMode) {
     val schema_suffix = ".schema"
 
-    var schemas: HashMap[String, ColumnSchema] = null
-    var filechannels: HashMap[String, FileChannel] = null
-    var column_readers: HashMap[String, ColumnReader] = null
-    var column_writers: HashMap[String, ColumnWriter] = null
+    val db = new File(basedir)
+
+    if (!db.exists)
+        throw new IOException("Storage directory '%s' does not exists" format basedir)
+
+    val column_readers = new HashMap[String, ColumnReader]
+    val column_writers = new HashMap[String, ColumnWriter]
+
+    val schemas = new HashMap[String, ColumnSchema]
+    val data_files = new HashMap[String, String]
+
+    for (f <- db.listFiles().filter(_.getName.endsWith(schema_suffix))) {
+        val name = f.getName().dropRight(schema_suffix.length)
+        val fname = f.getAbsolutePath().dropRight(schema_suffix.length)
+
+        schemas += name -> ColumnSchema.parseFrom(f)
+        data_files += name -> fname
+    }
 
     val encoder = build_encoder()
     val decoder = build_decoder()
 
-    if (!new File(basedir).exists)
-        throw new IOException("Storage directory '%s' does not exists" format basedir)
-
-    def open() = {
-        schemas = new HashMap[String, ColumnSchema]
-        filechannels = new HashMap[String, FileChannel]
-        column_readers = new HashMap[String, ColumnReader]
-        column_writers = new HashMap[String, ColumnWriter]
-
-        val db = new File(basedir)
-        val fls = db.listFiles()
-        val schema_fls = fls.filter(_.getName.endsWith(schema_suffix))
-
-        for (f <- schema_fls) {
-            val name = f.getName().dropRight(schema_suffix.length)
-            val fname = f.getAbsolutePath().dropRight(schema_suffix.length)
-
-            val channel = new RandomAccessFile(new File(fname), "rw").getChannel()
-            filechannels += name -> channel
-
-            schemas += name -> ColumnSchema.parseFrom(f)
-        }
-    }
-
-    def close() = {
-    }
 
     // XXX: return value is ListBuffer of ByteBuffers now.
     def read(column: String, start: Int, count: Int): ListBuffer[ByteBuffer] = {
