@@ -32,7 +32,8 @@ class ColumnSchema(val row_size: Int) {
 }
 
 
-class ColumnReader(channel: FileChannel, schema: ColumnSchema) {
+class ColumnReader(file: String, schema: ColumnSchema) {
+    val channel = new FileInputStream(file).getChannel()
     val buffer = channel.map(READ_ONLY, 0, channel.size)
     var header: Header = null
     var data_start_offset = 0
