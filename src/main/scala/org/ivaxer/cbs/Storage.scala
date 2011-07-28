@@ -132,7 +132,7 @@ class ColumnWriter(file: String, schema: ColumnSchema) {
             header_builder.setBlockSize(block_size)
         }
         val header = header_builder.build()
-        println("Appended block: " + header)
+        println("Appended block to '%s':\nHeader = {\n%s}\n" format(file, header))
         if (block_data != null)
             append(header, block_data)
         else
