@@ -221,7 +221,6 @@ class Storage(basedir: String, mode: OpenMode) {
 
     // XXX: return value is ListBuffer of ByteBuffers now.
     def read(column: String, start: Int, count: Int): ListBuffer[ByteBuffer] = {
-        is_column_exists(column)
         val reader = get_column_reader(column)
         // XXX: read from start of file each call
         reader.reset()
@@ -250,17 +249,14 @@ class Storage(basedir: String, mode: OpenMode) {
     def read(column: String, start: Int): ListBuffer[ByteBuffer] = read(column, start, 1)
 
     def append(column: String, header: Header, data: ByteBuffer) {
-        is_column_exists(column)
         get_column_writer(column).append(header, data)
     }
 
     def append(column: String, header: Header) {
-        is_column_exists(column)
         get_column_writer(column).append(header)
     }
 
     def append(column: String, data: ByteBuffer, compress: Boolean = false) {
-        is_column_exists(column)
         get_column_writer(column).append(data)
     }
 
@@ -295,11 +291,6 @@ class Storage(basedir: String, mode: OpenMode) {
         if (!decoder.Code(in, out, uncompressed_size))
             throw new Exception("Error in data stream")
         ByteBuffer.wrap(out.toByteArray)
-    }
-
-    protected def is_column_exists(column: String) = {
-        if (!schemas.contains(column))
-            throw new StorageError("Unknown column")
     }
 
     protected def get_column_reader(column: String): ColumnReader = {
