@@ -98,8 +98,8 @@ class ColumnReader(channel: FileChannel, schema: ColumnSchema) {
 }
 
 
-class ColumnWriter(channel: FileChannel, schema: ColumnSchema) {
-    seek_to_endfile()
+class ColumnWriter(file: String, schema: ColumnSchema) {
+    val channel = new FileOutputStream(file, true).getChannel()
 
     def append(header: Header, data: ByteBuffer) = {
         write_header(header)
@@ -114,10 +114,6 @@ class ColumnWriter(channel: FileChannel, schema: ColumnSchema) {
     override def toString(): String = {
         return "Schema: " + schema.toString +
         "\nFile channel: " + channel.toString
-    }
-
-    protected def seek_to_endfile() = {
-        channel.position(channel.size)
     }
 
     protected def write_header(header: Header) = {
