@@ -1,6 +1,7 @@
 package org.ivaxer.cbs
 
-import java.io.{File, RandomAccessFile, IOException, ByteArrayInputStream, ByteArrayOutputStream}
+import java.io.{File, IOException}
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 import java.io.{FileOutputStream, FileInputStream}
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
