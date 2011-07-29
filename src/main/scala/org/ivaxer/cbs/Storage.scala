@@ -76,7 +76,7 @@ class ColumnReader(file: String, schema: ColumnSchema) {
     protected def next_block(): Header = {
         seek_to_next_header();
         header = read_header()
-        if (header.hasCompressedBlockSize())
+        if (header.hasBitmapSize || header.hasCompressedBitmapSize)
             throw new Exception("Not Implemented")
         compressed_data = header.hasCompressedBlockSize
         val data_size = {
