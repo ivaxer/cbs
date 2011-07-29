@@ -42,9 +42,35 @@ class ColumnReader(file: String, schema: ColumnSchema) {
     var row_start = 0
     var row_end = 0
 
-    next_block()
+    // XXX: return value is ListBuffer of ByteBuffers now.
+    def read(start: Int, count: Int): ListBuffer[ByteBuffer] = {
+        assert(start >= 0)
+        assert(count > 0)
 
-    def next_block(): Header = {
+        if (row_start > start)
+            reset()
+
+        while (row_end <= start)
+            next_block()
+
+        val result = new ListBuffer[ByteBuffer]
+        var pending_rows = count
+        var first_row = start
+
+        while (pending_rows > 0) {
+            val cur_count = min(pending_rows, row_end - first_row)
+            val buf = read_block_rows(first_row, cur_count)
+            result += buf
+            pending_rows -= cur_count
+            first_row += cur_count
+            if (pending_rows > 0)
+                next_block()
+        }
+
+        result
+    }
+
+    protected def next_block(): Header = {
         seek_to_next_header();
         header = read_header()
         if (header.hasCompressedBlockSize())
@@ -56,7 +82,7 @@ class ColumnReader(file: String, schema: ColumnSchema) {
         return header
     }
 
-    def read(start: Int, count: Int): ByteBuffer = {
+    protected def read_block_rows(start: Int, count: Int): ByteBuffer = {
         if (start < row_start)
             throw new Exception("Out of range: start < first row in block")
         if (start + count > row_end)
@@ -69,13 +95,13 @@ class ColumnReader(file: String, schema: ColumnSchema) {
         return result
     }
 
-    def reset() = {
+    protected def reset() {
         buffer.position(0)
+        header = null
         data_start_offset = 0
         data_end_offset = 0
         row_start = 0
         row_end = 0
-        next_block()
     }
 
     override def toString(): String = {
@@ -88,7 +114,7 @@ class ColumnReader(file: String, schema: ColumnSchema) {
         "\nHeader: " + header.toString
     }
 
-    protected def seek_to_next_header() = {
+    protected def seek_to_next_header() {
         buffer.position(data_end_offset)
     }
 
@@ -220,29 +246,7 @@ class Storage(basedir: String, mode: OpenMode) {
 
     // XXX: return value is ListBuffer of ByteBuffers now.
     def read(column: String, start: Int, count: Int): ListBuffer[ByteBuffer] = {
-        val reader = get_column_reader(column)
-        // XXX: read from start of file each call
-        reader.reset()
-
-        while (reader.row_end <= start) {
-            reader.next_block()
-        }
-
-        val result = ListBuffer[ByteBuffer]()
-        var pending_rows = count
-        var cur_start = start
-
-        while (pending_rows > 0) {
-            val cur_count = min(pending_rows, reader.header.getNumRows().toInt)
-            val buf = reader.read(cur_start, cur_count)
-            result += buf
-            pending_rows -= cur_count
-            cur_start += cur_count
-            if (pending_rows > 0)
-                reader.next_block()
-        }
-
-        return result
+        get_column_reader(column).read(start, count)
     }
 
     def read(column: String, start: Int): ListBuffer[ByteBuffer] = read(column, start, 1)
