@@ -319,7 +319,7 @@ class Storage(basedir: String, mode: OpenMode) {
     def create(column: String, schema: ColumnSchema) {
         val schema_file = new File(db, column + schema_suffix)
         schema_file.createNewFile()
-        fw = new FileWriter(schema_file)
+        val fw = new FileWriter(schema_file)
         fw.write("%s\n" format schema.row_size)
         fw.close()
     }
