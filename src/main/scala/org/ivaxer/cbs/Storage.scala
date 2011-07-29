@@ -42,6 +42,8 @@ class ColumnReader(file: String, schema: ColumnSchema) {
     var row_start = 0
     var row_end = 0
 
+    val decoder = new Decoder()
+
     // XXX: return value is ListBuffer of ByteBuffers now.
     def read(start: Int, count: Int): ListBuffer[ByteBuffer] = {
         assert(start >= 0)
@@ -123,6 +125,26 @@ class ColumnReader(file: String, schema: ColumnSchema) {
         val header_data = new Array[Byte](header_size)
         buffer.get(header_data)
         return Header.parseFrom(header_data)
+    }
+
+    protected def decode(data: ByteBuffer, out_size: Int): ByteBuffer = {
+        val props = new Array[Byte](Encoder.kPropSize)
+        data.get(props)
+        val rest = data.slice()
+        if (!decoder.SetDecoderProperties(props))
+            throw new Exception("Incorrect coder properties")
+        val in = new ByteArrayInputStream(to_array(rest))
+        val out = new ByteArrayOutputStream(out_size)
+        if (!decoder.Code(in, out, out_size))
+            throw new Exception("Error in data stream")
+        ByteBuffer.wrap(out.toByteArray)
+    }
+
+    protected def to_array(data: ByteBuffer): Array[Byte] = {
+        // XXX: memory coping:
+        val buf = new Array[Byte](data.remaining)
+        data.get(buf)
+        buf
     }
 }
 
@@ -241,9 +263,6 @@ class Storage(basedir: String, mode: OpenMode) {
         data_files += name -> fname
     }
 
-    val decoder = build_decoder()
-
-
     // XXX: return value is ListBuffer of ByteBuffers now.
     def read(column: String, start: Int, count: Int): ListBuffer[ByteBuffer] = {
         get_column_reader(column).read(start, count)
@@ -271,19 +290,6 @@ class Storage(basedir: String, mode: OpenMode) {
     def repack() = {
     }
 
-    protected def decompress_data(compressed: ByteBuffer, uncompressed_size: Int): ByteBuffer = {
-        val props = new Array[Byte](Encoder.kPropSize)
-        compressed.get(props)
-        val rest = compressed.slice()
-        if (!decoder.SetDecoderProperties(props))
-            throw new Exception("Incorrect coder properties")
-        val in = new ByteArrayInputStream(to_array(rest))
-        val out = new ByteArrayOutputStream(uncompressed_size)
-        if (!decoder.Code(in, out, uncompressed_size))
-            throw new Exception("Error in data stream")
-        ByteBuffer.wrap(out.toByteArray)
-    }
-
     protected def get_column_reader(column: String): ColumnReader = {
         if (column_readers.contains(column)) {
             return column_readers(column)
@@ -304,19 +310,6 @@ class Storage(basedir: String, mode: OpenMode) {
             val schema = schemas(column)
             return new ColumnWriter(file, schema)
         }
-    }
-
-    protected def build_decoder(): Decoder = {
-        new Decoder()
-    }
-
-    protected def to_array(data: ByteBuffer): Array[Byte] = {
-        // XXX: memory coping:
-        val buf = new Array[Byte](data.remaining)
-        data.get(buf)
-        buf
-    }
-
     }
 }
 
