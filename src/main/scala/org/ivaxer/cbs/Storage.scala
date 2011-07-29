@@ -39,6 +39,7 @@ class ColumnReader(file: String, schema: ColumnSchema) {
     var header: Header = null
     var data_start_offset = 0
     var data_end_offset = 0
+    var compressed_data = false
     var row_start = 0
     var row_end = 0
 
@@ -77,6 +78,7 @@ class ColumnReader(file: String, schema: ColumnSchema) {
         header = read_header()
         if (header.hasCompressedBlockSize())
             throw new Exception("Not Implemented")
+        compressed_data = header.hasCompressedBlockSize
         val data_size = {
             if (header.hasCompressedBlockSize())
                 header.getCompressedBlockSize().toInt
@@ -95,6 +97,8 @@ class ColumnReader(file: String, schema: ColumnSchema) {
             throw new Exception("Out of range: start < first row in block")
         if (start + count > row_end)
             throw new Exception("Out of range: start + count >= last row in block")
+        if (compressed_data)
+            throw new Exception("Not Implemented")
         val length = count * schema.row_size
         val offset = data_start_offset + (start - row_start) * schema.row_size
         buffer.position(offset)
