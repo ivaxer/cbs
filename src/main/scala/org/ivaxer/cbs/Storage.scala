@@ -77,8 +77,14 @@ class ColumnReader(file: String, schema: ColumnSchema) {
         header = read_header()
         if (header.hasCompressedBlockSize())
             throw new Exception("Not Implemented")
+        val data_size = {
+            if (header.hasCompressedBlockSize())
+                header.getCompressedBlockSize().toInt
+            else
+                header.getBlockSize().toInt
+        }
         data_start_offset = buffer.position()
-        data_end_offset = data_start_offset + schema.row_size * header.getNumRows().toInt
+        data_end_offset = data_start_offset + data_size
         row_start = row_end
         row_end = row_start + header.getNumRows().toInt
         return header
