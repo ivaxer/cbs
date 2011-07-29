@@ -257,7 +257,10 @@ class ColumnWriter(file: String, schema: ColumnSchema) {
 }
 
 
-class StorageError(msg: String) extends Exception
+class StorageException(msg: String) extends Exception(msg: String)
+
+
+class StorageIOException(msg: String) extends StorageException(msg: String)
 
 
 object OpenMode extends Enumeration("Read", "Write") {
@@ -318,6 +321,8 @@ class Storage(basedir: String, mode: OpenMode) {
 
     def create(column: String, schema: ColumnSchema) {
         val schema_file = new File(db, column + schema_suffix)
+        if (schema_file.exists)
+            throw new StorageIOException("Column schema '%s' already exists" format column)
         schema_file.createNewFile()
         val fw = new FileWriter(schema_file)
         fw.write("%s\n" format schema.row_size)
