@@ -1,6 +1,6 @@
 package org.ivaxer.cbs
 
-import java.io.{File, IOException}
+import java.io.{File, FileWriter, IOException}
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 import java.io.{FileOutputStream, FileInputStream}
 import java.nio.ByteBuffer
@@ -314,6 +314,19 @@ class Storage(basedir: String, mode: OpenMode) {
     }
 
     def repack() = {
+    }
+
+    def create(column: String, schema: ColumnSchema) {
+        val schema_file = new File(db, column + schema_suffix)
+        schema_file.createNewFile()
+        fw = new FileWriter(schema_file)
+        fw.write("%s\n" format schema.row_size)
+        fw.close()
+    }
+
+    def create(columns: HashMap[String, ColumnSchema]) {
+        for ((column, schema) <- columns)
+            create(column, schema)
     }
 
     protected def get_column_reader(column: String): ColumnReader = {
