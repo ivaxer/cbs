@@ -39,7 +39,7 @@ class ColumnReader(file: String, schema: ColumnSchema) {
     var header: Header = null
     var data_start_offset = 0
     var data_end_offset = 0
-    var compressed_data = false
+    var compressed_block = false
     var row_start = 0
     var row_end = 0
 
@@ -78,7 +78,7 @@ class ColumnReader(file: String, schema: ColumnSchema) {
         header = read_header()
         if (header.hasBitmapSize || header.hasCompressedBitmapSize)
             throw new Exception("Not Implemented")
-        compressed_data = header.hasCompressedBlockSize
+        compressed_block = header.hasCompressedBlockSize
         val data_size = {
             if (header.hasCompressedBlockSize())
                 header.getCompressedBlockSize().toInt
@@ -97,14 +97,30 @@ class ColumnReader(file: String, schema: ColumnSchema) {
             throw new Exception("Out of range: start < first row in block")
         if (start + count > row_end)
             throw new Exception("Out of range: start + count >= last row in block")
-        if (compressed_data)
-            throw new Exception("Not Implemented")
+        val data = get_block_data()
         val length = count * schema.row_size
-        val offset = data_start_offset + (start - row_start) * schema.row_size
+        val offset = (start - row_start) * schema.row_size
         buffer.position(offset)
         val result = buffer.slice()
         result.limit(length)
         return result
+    }
+
+    protected def get_block_data(): ByteBuffer = {
+        val compressed_size = header.getCompressedBlockSize().toInt
+        val out_size = header.getBlockSize().toInt
+        if (compressed_block) {
+            buffer.position(data_start_offset)
+            val coded_data = buffer.slice()
+            coded_data.limit(compressed_size)
+            return decode(coded_data, out_size)
+        }
+        else {
+            buffer.position(data_start_offset)
+            val data = buffer.slice()
+            data.limit(out_size)
+            return data
+        }
     }
 
     protected def reset() {
