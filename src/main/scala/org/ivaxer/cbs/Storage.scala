@@ -322,6 +322,8 @@ class Storage(basedir: String, mode: OpenMode) {
         val fw = new FileWriter(schema_file)
         fw.write("%s\n" format schema.row_size)
         fw.close()
+        data_files += column -> new File(db, column).getAbsolutePath
+        schemas += column -> schema
     }
 
     def create(columns: HashMap[String, ColumnSchema]) {
