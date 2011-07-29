@@ -96,7 +96,7 @@ class ColumnReader(file: String, schema: ColumnSchema) {
         if (start < row_start)
             throw new Exception("Out of range: start < first row in block")
         if (start + count > row_end)
-            throw new Exception("Out of range: start + count >= last row in block")
+            throw new Exception("Out of range: start + count > last row in block")
         val data = get_block_data()
         val length = count * schema.row_size
         val offset = (start - row_start) * schema.row_size
