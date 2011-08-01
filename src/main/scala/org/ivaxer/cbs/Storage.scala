@@ -176,9 +176,9 @@ class ColumnReader(file: String, schema: ColumnSchema) {
 
 
 class ColumnWriter(file: String, schema: ColumnSchema, var compress: Boolean = true) {
-    val channel = new FileOutputStream(file, true).getChannel()
+    protected val channel = new FileOutputStream(file, true).getChannel()
 
-    val encoder = build_encoder()
+    protected val encoder = build_encoder()
 
     def append(header: Header, data: ByteBuffer) {
         write_header(header)
