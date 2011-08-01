@@ -175,9 +175,8 @@ class ColumnReader(file: String, schema: ColumnSchema) {
 }
 
 
-class ColumnWriter(file: String, schema: ColumnSchema) {
+class ColumnWriter(file: String, schema: ColumnSchema, var compress: Boolean = true) {
     val channel = new FileOutputStream(file, true).getChannel()
-    val compress = true
 
     val encoder = build_encoder()
 
