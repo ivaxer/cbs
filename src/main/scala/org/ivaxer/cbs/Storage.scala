@@ -34,17 +34,17 @@ class ColumnSchema(val row_size: Int) {
 
 
 class ColumnReader(file: String, schema: ColumnSchema) {
-    val channel = new FileInputStream(file).getChannel()
-    val buffer = channel.map(READ_ONLY, 0, channel.size)
-    var header: Header = null
-    var data_start_offset = 0
-    var data_end_offset = 0
-    var row_start = 0
-    var row_end = 0
+    protected val channel = new FileInputStream(file).getChannel()
+    protected val buffer = channel.map(READ_ONLY, 0, channel.size)
+    protected var header: Header = null
+    protected var data_start_offset = 0
+    protected var data_end_offset = 0
+    protected var row_start = 0
+    protected var row_end = 0
 
-    val decoder = new Decoder()
+    protected val decoder = new Decoder()
 
-    def compressed_block = header.hasCompressedBlockSize
+    protected def compressed_block = header.hasCompressedBlockSize
 
     // XXX: return value is ListBuffer of ByteBuffers now.
     def read(start: Int, count: Int): ListBuffer[ByteBuffer] = {
