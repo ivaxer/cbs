@@ -100,8 +100,8 @@ class ColumnReader(file: String, schema: ColumnSchema) {
         val data = get_block_data()
         val length = count * schema.row_size
         val offset = (start - row_start) * schema.row_size
-        buffer.position(offset)
-        val result = buffer.slice()
+        data.position(offset)
+        val result = data.slice()
         result.limit(length)
         return result
     }
