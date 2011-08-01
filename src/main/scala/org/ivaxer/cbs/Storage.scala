@@ -39,11 +39,12 @@ class ColumnReader(file: String, schema: ColumnSchema) {
     var header: Header = null
     var data_start_offset = 0
     var data_end_offset = 0
-    var compressed_block = false
     var row_start = 0
     var row_end = 0
 
     val decoder = new Decoder()
+
+    def compressed_block = header.hasCompressedBlockSize
 
     // XXX: return value is ListBuffer of ByteBuffers now.
     def read(start: Int, count: Int): ListBuffer[ByteBuffer] = {
@@ -78,7 +79,6 @@ class ColumnReader(file: String, schema: ColumnSchema) {
         header = read_header()
         if (header.hasBitmapSize || header.hasCompressedBitmapSize)
             throw new Exception("Not Implemented")
-        compressed_block = header.hasCompressedBlockSize
         val data_size = {
             if (header.hasCompressedBlockSize())
                 header.getCompressedBlockSize().toInt
