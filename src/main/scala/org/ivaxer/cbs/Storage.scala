@@ -193,23 +193,22 @@ class ColumnWriter(file: String, schema: ColumnSchema, var compress: Boolean = t
         val block_size = data.remaining
         val num_rows = block_size / schema.row_size
         val header_builder = Header.newBuilder().setNumRows(num_rows)
-        var block_data: ByteBuffer = null
-        if (is_empty(schema, data))
-            header_builder.setBlockSize(0)
-        else if (compress) {
-            block_data = encode(data)
-            header_builder.setCompressedBlockSize(block_data.remaining).setBlockSize(block_size)
+        if (is_empty(schema, data)) {
+            append(header_builder.build())
+            return
         }
-        else {
-            block_data = data
-            header_builder.setBlockSize(block_size)
+        header_builder.setBlockSize(block_size)
+        val block_data = {
+            if (compress) {
+                val compressed_data = encode(data)
+                header_builder.setCompressedBlockSize(compressed_data.remaining)
+                compressed_data
+            }
+            else {
+                data
+            }
         }
-        val header = header_builder.build()
-        println("Appended block to '%s':\nHeader = {\n%s}\n" format(file, header))
-        if (block_data != null)
-            append(header, block_data)
-        else
-            append(header)
+        append(header_builder.build(), block_data)
     }
 
     override def toString(): String = {
